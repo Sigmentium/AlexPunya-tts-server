@@ -28,16 +28,15 @@ const server = http.createServer((req, res) => {
             if (text.length > 50) {
                 res.writeHead(500, {'Content-Type': 'application/json'});
                 res.end();
-                return;
             }
             else {
-                const resultPath = path.join(__dirname, 'result.wav');
+                const resultPath = path.join(`${__dirname}\TTS`, 'result.wav');
 
                 if (fs.existsSync(resultPath)) {
                     fs.unlinkSync(resultPath);
                 }
 
-                const command = `tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 --text "${text}" --speaker_wav Main.wav --language_idx ru --out_path result.wav`;
+                const command = `cd TTS && tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 --text "${text}" --speaker_wav ../Main.wav --language_idx ru --out_path result.wav`;
 
                 exec(command, { cwd: __dirname }, async (error, stdout, stderr) => {
                     res.writeHead(200);
@@ -45,9 +44,7 @@ const server = http.createServer((req, res) => {
 
                     fs.unlinkSync(resultPath);
                 });
-                return;
             }
-
             return;
         });
         return;
