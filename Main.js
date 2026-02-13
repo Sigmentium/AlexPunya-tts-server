@@ -1,10 +1,13 @@
+const fs  = require('fs');
+const path = require('path');
 const http = require('http');
+const { exec } = require('child_process');
 
 const port = process.env.PORT || 1000;
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
@@ -21,16 +24,16 @@ const server = http.createServer((req, res) => {
         });
 
         req.on('end', () => {
-            const { text } = JSON.parse(body);
+            let { text } = JSON.parse(body);
 
-            text.trim();
+            text = text.trim();
 
-            if (text.length > 50) {
-                res.writeHead(500, {'Content-Type': 'application/json'});
+            if (text.length > 80) {
+                res.writeHead(400, {'Content-Type': 'application/json'});
                 res.end();
             }
             else {
-                const resultPath = path.join(`${__dirname}\TTS`, 'result.wav');
+                const resultPath = path.join(__dirname, 'TTS', 'result.wav');
 
                 if (fs.existsSync(resultPath)) {
                     fs.unlinkSync(resultPath);
@@ -38,11 +41,12 @@ const server = http.createServer((req, res) => {
 
                 const command = `cd TTS && tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 --text "${text}" --speaker_wav ../Main.wav --language_idx ru --out_path result.wav`;
 
-                exec(command, { cwd: __dirname }, async (error, stdout, stderr) => {
-                    res.writeHead(200);
-                    res.end(resultPath);
+                exec(command, { cwd: __dirname }, async () => {
+                    res.writeHead(200, {'Content-Type': 'audio/wav'});
 
-                    fs.unlinkSync(resultPath);
+                    const stream = fs.createReadStream(resultPath);
+                    stream.pipe(res);
+                    stream.on('end', () => fs.unlinkSync(resultPath));
                 });
             }
             return;
